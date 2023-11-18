@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  db:
+    container_name: chirpify
+    image: postgres:15
+    restart: always
+    ports:
+      - 5432:5432
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_USER: chirpify
+      POSTGRES_PASSWORD: qwerty123
+
+volumes:
+  pg_data:
