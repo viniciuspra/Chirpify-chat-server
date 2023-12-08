@@ -1,9 +1,64 @@
-import { io } from "./http";
+import socketio from "socket.io";
+import http from "http";
+import { searchUsers, getUser } from "./services/search";
+import {
+  getReceivedFriendRequest,
+  sendFriendRequest,
+} from "./services/request";
 
-io.on("connection", (socket) => {
-  console.log("User Connected -", socket.id);
-
-  socket.on("disconnect", (reason) => {
-    console.log("disconnected", socket.id);
+export function initializeSocket(server: http.Server): void {
+  const io = new socketio.Server(server, {
+    cors: { origin: "http://localhost:5173" },
   });
-});
+
+  io.on("connection", async (socket) => {
+    console.log("User connected", socket.id);
+
+    socket.on("searchUser", async (searchTerm: string) => {
+      try {
+        socket.emit("loading");
+        const result = await searchUsers(searchTerm);
+
+        socket.emit("searchUser", result);
+      } catch (error) {
+        console.log("Error during search", error);
+      }
+    });
+
+    socket.on("getUser", async (username: string) => {
+      try {
+        const result = await getUser(username);
+
+        if (result) {
+          socket.emit("getUser", result);
+        } else {
+          socket.emit("getUser", null);
+        }
+      } catch (error) {
+        console.log("Failed to retrieve user information.", error);
+      }
+    });
+
+    socket.on("sendRequest", async (senderId: string, receiverId: string) => {
+      try {
+        await sendFriendRequest(senderId, receiverId);
+      } catch (error) {
+        console.log("Error sending friend request: ", error);
+      }
+    });
+
+    socket.on("getReceivedFriendRequest", async (userId: string) => {
+      try {
+        const sender = await getReceivedFriendRequest(userId);
+
+        socket.emit("getReceivedFriendRequest", sender);
+      } catch (error) {
+        console.log("Error sending friend request: ", error);
+      }
+    });
+
+    socket.on("disconnect", () => {
+      console.log("User disconnected", socket.id);
+    });
+  });
+}
