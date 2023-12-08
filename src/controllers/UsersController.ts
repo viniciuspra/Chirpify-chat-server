@@ -1,7 +1,7 @@
-import { Request, Response } from "express";
+import { Request, Response, response } from "express";
 import { AppError } from "../utils/AppError";
 import { prisma } from "../lib/prisma";
-import * as crypto from "node:crypto";
+import * as bcrypt from "bcrypt";
 
 export class UsersController {
   async create(req: Request, res: Response) {
@@ -24,18 +24,13 @@ export class UsersController {
       );
     }
 
-    const salt = crypto.randomBytes(16).toString("hex");
-
-    const hashedPassword = crypto
-      .pbkdf2Sync(password, salt, 1000, 64, "sha512")
-      .toString("hex");
+    const hashedPassword = bcrypt.hashSync(password, 10);
 
     const response = await prisma.user.create({
       data: {
         fullname,
         username,
         password: hashedPassword,
-        salt,
       },
     });
 
@@ -43,10 +38,10 @@ export class UsersController {
   }
 
   async update(req: Request, res: Response) {
-    const { fullname, username, password } = req.body;
+    const { fullname, newPassword, oldPassword } = req.body;
     const user_id = req.user.id;
 
-    if (!fullname && !username && !password) {
+    if (!fullname && !newPassword && !oldPassword) {
       throw new AppError(
         "No data provided for update. Please provide the information you wish to update."
       );
@@ -63,18 +58,31 @@ export class UsersController {
     }
 
     if (fullname) {
+      if (fullname.length < 3 || fullname.trim() === "") {
+        throw new AppError("Fullname must be at least 3 characters.");
+      }
       user.fullname = fullname;
     }
-    if (username) {
-      user.username = username;
+
+    if (newPassword && newPassword.trim() === "") {
+      throw new AppError("New password cannot be blank.");
     }
-    if (password) {
-      const salt = crypto.randomBytes(16).toString("hex");
-      const hashedPassword = crypto
-        .pbkdf2Sync(password, salt, 1000, 64, "sha512")
-        .toString("hex");
+
+    if (newPassword && !oldPassword) {
+      throw new AppError(
+        "You need to provide the old password to set a new password."
+      );
+    }
+
+    if (newPassword && oldPassword) {
+      const isValidPassword = bcrypt.compareSync(oldPassword, user.password);
+
+      if (!isValidPassword) {
+        throw new AppError("Old password does not match.");
+      }
+      const hashedPassword = bcrypt.hashSync(newPassword, 10);
+
       user.password = hashedPassword;
-      user.salt = salt;
     }
 
     const response = await prisma.user.update({

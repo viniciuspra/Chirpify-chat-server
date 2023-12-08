@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 
 import { AppError } from "../utils/AppError";
-import { pbkdf2Sync } from "node:crypto";
+import * as bcrypt from "bcrypt";
 import { prisma } from "../lib/prisma";
 
 import authConfig from "../configs/auth";
@@ -24,17 +24,9 @@ export class SessionsController {
       );
     }
 
-    const salt = user.salt;
+    const isValidPassword = bcrypt.compareSync(password, user.password);
 
-    const hashedPassword = pbkdf2Sync(
-      password,
-      salt,
-      1000,
-      64,
-      "sha512"
-    ).toString("hex");
-
-    if (hashedPassword !== user.password) {
+    if (!isValidPassword) {
       throw new AppError(
         "Username not found or incorrect password. Please check your credentials and try again.",
         401
