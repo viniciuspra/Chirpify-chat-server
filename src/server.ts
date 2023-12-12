@@ -6,9 +6,10 @@ import "express-async-errors";
 import { errorHandler } from "./middlewares/errors";
 import { routes } from "./routes";
 
-import { initializeSocket } from "./socket";
+import { initializeSocket } from "./websocket";
 
 import dotenv from "dotenv";
+import { expiredRequest } from "./services/removeExpiredRequests";
 dotenv.config();
 
 const app = express();
@@ -20,6 +21,7 @@ app.use("/api", routes);
 app.use(errorHandler);
 
 initializeSocket(server);
+expiredRequest.start();
 
 const PORT = process.env.PORT || 3000;
 
