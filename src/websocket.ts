@@ -1,10 +1,13 @@
 import socketio from "socket.io";
 import http from "http";
+import { Socket } from "socket.io";
+
 import {
   searchFilteredUsers,
   getUser,
   searchUserContacts,
 } from "./services/search";
+
 import {
   RequestStatus,
   getReceivedFriendRequest,
@@ -13,94 +16,100 @@ import {
   sendFriendRequest,
 } from "./services/request";
 
+import {
+  SendMessage,
+  getMessages,
+  getOrCreateChatId,
+  getUserChats,
+} from "./services/message";
+
 export function initializeSocket(server: http.Server): void {
   const io = new socketio.Server(server, {
     cors: { origin: "http://localhost:5173" },
   });
 
-  io.on("connection", async (socket) => {
-    console.log("User connected", socket.id);
+  io.on("connection", handleConnection);
+}
 
-    socket.on("searchUser", async (searchTerm: string, userId: string) => {
-      try {
-        const result = await searchFilteredUsers(searchTerm, userId);
-        
-        socket.emit("searchUser", result);
-      } catch (error) {
-        console.log("Error during search", error);
-      }
-    });
+function handleConnection(socket: Socket) {
+  console.log("User connected", socket.id);
 
-    socket.on(
-      "searchUserContacts",
-      async (searchTerm: string, userId: string) => {
-        try {
-          const result = await searchUserContacts(searchTerm, userId);
+  socket.on("searchUser", (searchTerm: string, userId: string) =>
+    handleEvent(socket, "searchUser", () =>
+      searchFilteredUsers(searchTerm, userId)
+    )
+  );
 
-          socket.emit("searchUserContacts", result);
-        } catch (error) {
-          console.log("Error during search", error);
-        }
-      }
-    );
+  socket.on("searchUserContacts", (searchTerm: string, userId: string) =>
+    handleEvent(socket, "searchUserContacts", () =>
+      searchUserContacts(searchTerm, userId)
+    )
+  );
 
-    socket.on("getUser", async (username: string) => {
-      try {
-        const result = await getUser(username);
+  socket.on("getUser", (username: string) =>
+    handleEvent(socket, "getUser", () => getUser(username))
+  );
 
-        if (result) {
-          socket.emit("getUser", result);
-        } else {
-          socket.emit("getUser", null);
-        }
-      } catch (error) {
-        console.log("Failed to retrieve user information.", error);
-      }
-    });
+  socket.on("sendRequest", (senderId: string, receiverId: string) =>
+    handleEvent(socket, "sendRequest", () =>
+      sendFriendRequest(senderId, receiverId)
+    )
+  );
 
-    socket.on("sendRequest", async (senderId: string, receiverId: string) => {
-      try {
-        const response = await sendFriendRequest(senderId, receiverId);
+  socket.on("getReceivedFriendRequest", (userId: string) =>
+    handleEvent(socket, "getReceivedFriendRequest", () =>
+      getReceivedFriendRequest(userId)
+    )
+  );
 
-        return response.id;
-      } catch (error) {
-        console.log("Error sending friend request: ", error);
-      }
-    });
+  socket.on("getSentFriendRequest", (userId: string) =>
+    handleEvent(socket, "getSentFriendRequest", () =>
+      getSentFriendRequest(userId)
+    )
+  );
 
-    socket.on("getReceivedFriendRequest", async (userId: string) => {
-      try {
-        const sender = await getReceivedFriendRequest(userId);
+  socket.on(
+    "respondFriendRequest",
+    (userId: string, senderId: string, status: RequestStatus) =>
+      handleEvent(socket, "respondFriendRequest", () =>
+        respondFriendRequest(userId, senderId, status)
+      )
+  );
 
-        socket.emit("getReceivedFriendRequest", sender);
-      } catch (error) {
-        console.log("Error sending friend request: ", error);
-      }
-    });
+  socket.on("message", (message: string, userId: string, receiverId: string) =>
+    handleEvent(socket, "message", () =>
+      SendMessage(message, userId, receiverId)
+    )
+  );
 
-    socket.on("getSentFriendRequest", async (userId: string) => {
-      try {
-        const sender = await getSentFriendRequest(userId);
+  socket.on("getChatId", (userId: string, receiverId: string) =>
+    handleEvent(socket, "getChatId", () =>
+      getOrCreateChatId(userId, receiverId)
+    )
+  );
 
-        socket.emit("getSentFriendRequest", sender);
-      } catch (error) {
-        console.log("Error sending friend request: ", error);
-      }
-    });
+  socket.on("getUserChats", (userId: string) =>
+    handleEvent(socket, "getUserChats", () => getUserChats(userId))
+  );
 
-    socket.on(
-      "respondFriendRequest",
-      async (userId: string, senderId: string, status: RequestStatus) => {
-        try {
-          await respondFriendRequest(userId, senderId, status);
-        } catch (error) {
-          console.log("Error respond friend requests: ", error);
-        }
-      }
-    );
+  socket.on("getMessages", (chatId: string) =>
+    handleEvent(socket, "getMessages", () => getMessages(chatId))
+  );
 
-    socket.on("disconnect", () => {
-      console.log("User disconnected", socket.id);
-    });
+  socket.on("disconnect", () => {
+    console.log("User disconnected", socket.id);
   });
+}
+
+async function handleEvent(
+  socket: Socket,
+  eventName: string,
+  eventHandler: () => Promise<any>
+) {
+  try {
+    const result = await eventHandler();
+    socket.emit(eventName, result);
+  } catch (error) {
+    console.error(`Error handling ${eventName}:`, error);
+  }
 }
