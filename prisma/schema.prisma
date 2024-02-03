@@ -8,31 +8,35 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(uuid())
-  fullname     String
-  username     String    @unique
-  password     String
-  isOnline     Boolean   @default(false)
-  avatar       String?
-  salt         String
-  sentMessages Message[] @relation("UserSentMessage")
-  contacts     Contact[] @relation("UserContacts")
-  contactsOf   Contact[] @relation("UserContactsOf")
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id               String    @id @default(uuid())
+  fullname         String
+  username         String    @unique
+  password         String
+  isOnline         Boolean   @default(false)
+  avatar           String?
+  sentMessages     Message[] @relation("UserSentMessage")
+  contacts         Contact[] @relation("UserContacts")
+  contactsOf       Contact[] @relation("UserContactsOf")
+  sentRequests     Request[] @relation("SentRequest")
+  receivedRequests Request[] @relation("ReceivedRequest")
+  chats            Chat[]    @relation("ChatMembership")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }
 
 model Message {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid())
   content   String
   userId    String
+  chatId    String
   user      User     @relation("UserSentMessage", fields: [userId], references: [id])
+  chat      Chat     @relation("ChatMessages", fields: [chatId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Contact {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid())
   userId    String
   contactId String
   createdAt DateTime @default(now())
@@ -41,4 +45,31 @@ model Contact {
   contact   User     @relation("UserContactsOf", fields: [contactId], references: [id])
 
   @@unique([userId, contactId])
+}
+
+model Request {
+  id         String   @id @default(uuid())
+  status     Status   @default(pending)
+  sender     User     @relation("SentRequest", fields: [senderId], references: [id])
+  receiver   User     @relation("ReceivedRequest", fields: [receiverId], references: [id])
+  senderId   String
+  receiverId String
+  expiresAt  DateTime
+}
+
+enum Status {
+  pending
+  accepted
+  rejected
+}
+
+model Chat {
+  id          String    @id @default(uuid())
+  name        String?
+  image       String?
+  isGroupChat Boolean   @default(false)
+  users       User[]    @relation("ChatMembership")
+  messages    Message[] @relation("ChatMessages")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
