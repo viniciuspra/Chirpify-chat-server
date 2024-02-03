@@ -1,4 +1,5 @@
 import { prisma } from "../lib/prisma";
+import { AppError } from "../utils/AppError";
 
 async function searchFilteredUsers(search: string, userId: string) {
   try {
@@ -44,7 +45,7 @@ async function searchFilteredUsers(search: string, userId: string) {
     return users;
   } catch (error) {
     console.error("Error during user search: ", error);
-    return [];
+    throw new AppError("Failed to search filtered users.");
   }
 }
 
@@ -104,7 +105,7 @@ async function searchUserContacts(search: string, userId: string) {
 
     if (!user) {
       console.error("User not found");
-      return [];
+      return null;
     }
 
     const contacts = user.contacts.map((contactEntry) => contactEntry.contact);
@@ -113,7 +114,7 @@ async function searchUserContacts(search: string, userId: string) {
     return [...contacts, ...contactsOf];
   } catch (error) {
     console.error("Error during user search: ", error);
-    return [];
+    throw new AppError("Failed to search user contacts.");
   }
 }
 
@@ -128,7 +129,7 @@ async function getUser(username: string) {
     return user;
   } catch (error) {
     console.error("Failed to retrieve user information: ", error);
-    return [];
+    throw new AppError("Failed to retrieve user information.");
   }
 }
 
