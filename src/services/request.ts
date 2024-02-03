@@ -6,7 +6,7 @@ export type RequestStatus = "accepted" | "rejected" | "pending";
 
 async function sendFriendRequest(senderId: string, receiverId: string) {
   try {
-    const request = await prisma.request.create({
+    const friendRequest = await prisma.request.create({
       data: {
         senderId,
         receiverId,
@@ -14,41 +14,41 @@ async function sendFriendRequest(senderId: string, receiverId: string) {
         expiresAt: new Date(Date.now() + 10000),
       },
     });
-    return request;
+    return friendRequest;
   } catch (error) {
-    console.error(error);
+    console.error("Error sending friend request:", error);
     throw new AppError("Error sending friend request.");
   }
 }
 
 async function getReceivedFriendRequest(userId: string) {
   try {
-    const request = await prisma.request.findMany({
+    const friendRequests = await prisma.request.findMany({
       where: { receiverId: userId, status: "pending" },
       include: { sender: true },
     });
 
-    const sender = request.map((request) => request.sender);
+    const senders = friendRequests.map(({ sender }) => sender);
 
-    return sender;
+    return senders;
   } catch (error) {
-    console.error(error);
+    console.error("Error getting received friend requests:", error);
     throw new AppError("Error getting received friend requests.");
   }
 }
 
 async function getSentFriendRequest(userId: string) {
   try {
-    const request = await prisma.request.findMany({
+    const friendRequests = await prisma.request.findMany({
       where: { senderId: userId, status: "pending" },
       include: { receiver: true },
     });
 
-    const receiver = request.map((request) => request.receiver);
+    const receivers = friendRequests.map(({ receiver }) => receiver);
 
-    return receiver;
+    return receivers;
   } catch (error) {
-    console.error(error);
+    console.error("Error getting sent friend requests:", error);
     throw new AppError("Error getting sent friend requests.");
   }
 }
@@ -75,17 +75,17 @@ async function respondFriendRequest(
       throw new AppError("Friend request not found.", 404);
     }
 
-    if (user.receivedRequests[0].id) {
-      await prisma.request.update({
-        where: { id: user.receivedRequests[0].id, senderId },
-        data: { status },
-      });
+    const receivedRequest = user.receivedRequests[0];
 
-      if (status === "rejected") {
-        await prisma.request.delete({
-          where: { id: user.receivedRequests[0].id },
-        });
-      }
+    await prisma.request.update({
+      where: { id: receivedRequest.id, senderId },
+      data: { status },
+    });
+
+    if (status === "rejected") {
+      await prisma.request.delete({
+        where: { id: receivedRequest.id },
+      });
     }
 
     if (status === "accepted") {
@@ -99,7 +99,7 @@ async function respondFriendRequest(
 
     return user;
   } catch (error) {
-    console.error(error);
+    console.error("Error respond friend requests:", error);
     throw new AppError("Error respond friend requests.");
   }
 }
