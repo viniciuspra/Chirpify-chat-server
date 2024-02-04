@@ -20,8 +20,8 @@ COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
-EXPOSE 3000
+EXPOSE 3333
 
 RUN echo $PATH
 
-CMD ["pnpm", "start:migrate", "pnpm", "start:prod"]
+CMD ["/usr/local/bin/pnpm", "start:migrate", "/usr/local/bin/pnpm", "start:prod"]
