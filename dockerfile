@@ -1,15 +1,23 @@
-FROM node:18
+FROM node:18 AS builder
 
 WORKDIR /app
 
-COPY . .
+COPY package*.json ./
+COPY prisma ./prisma
 
 RUN npm install -g pnpm && pnpm install
 
+COPY . .
+
 RUN pnpm build
 
-ENV DATABASE_URL="postgresql://chirpify:qwerty123@db:5432/db?schema=public"
+FROM node:18
 
-EXPOSE 3333
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
 
-CMD ["pnpm", "migrate", "&&", "pnpm", "start"]
+EXPOSE 3000
+
+CMD ["pnpm", "start:migrate:prod"]
