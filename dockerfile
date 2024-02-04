@@ -3,15 +3,13 @@ FROM node:18 AS builder
 WORKDIR /app
 
 COPY package*.json ./
-COPY prisma ./prisma
+COPY prisma ./prisma/
 
-RUN npm install -g pnpm && pnpm install
+RUN npm install
 
 COPY . .
 
-RUN npm install -g pnpm
-
-RUN pnpm build
+RUN npm run build
 
 FROM node:18
 
@@ -20,8 +18,7 @@ COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
-EXPOSE 3333
+EXPOSE 3000
 
-RUN echo $PATH
+CMD [  "npm", "run", "start:migrate:prod" ]
 
-CMD ["/usr/local/bin/pnpm", "start:migrate", "/usr/local/bin/pnpm", "start:prod"]
