@@ -25,7 +25,7 @@ import {
 
 export function initializeSocket(server: http.Server): void {
   const io = new socketio.Server(server, {
-    cors: { origin: "http://localhost:5173" },
+    cors: { origin: "https://chirpify.netlify.app" },
   });
 
   io.on("connection", handleConnection);
