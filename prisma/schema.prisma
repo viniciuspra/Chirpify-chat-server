@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -49,18 +49,12 @@ model Contact {
 
 model Request {
   id         String   @id @default(uuid())
-  status     Status   @default(pending)
+  status     String   @default("pending")
   sender     User     @relation("SentRequest", fields: [senderId], references: [id])
   receiver   User     @relation("ReceivedRequest", fields: [receiverId], references: [id])
   senderId   String
   receiverId String
   expiresAt  DateTime
-}
-
-enum Status {
-  pending
-  accepted
-  rejected
 }
 
 model Chat {

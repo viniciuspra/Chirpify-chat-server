@@ -64,13 +64,11 @@ async function searchUserContacts(search: string, userId: string) {
                 {
                   fullname: {
                     contains: search,
-                    mode: "insensitive",
                   },
                 },
                 {
                   username: {
                     contains: search,
-                    mode: "insensitive",
                   },
                 },
               ],
@@ -87,13 +85,11 @@ async function searchUserContacts(search: string, userId: string) {
                 {
                   fullname: {
                     contains: search,
-                    mode: "insensitive",
                   },
                 },
                 {
                   username: {
                     contains: search,
-                    mode: "insensitive",
                   },
                 },
               ],
