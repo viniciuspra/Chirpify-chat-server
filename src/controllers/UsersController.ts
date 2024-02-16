@@ -1,4 +1,4 @@
-import { Request, Response, response } from "express";
+import { Request, Response } from "express";
 import { AppError } from "../utils/AppError";
 import { prisma } from "../lib/prisma";
 import * as bcrypt from "bcrypt";
