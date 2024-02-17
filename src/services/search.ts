@@ -9,8 +9,8 @@ async function searchFilteredUsers(search: string, userId: string) {
           search
             ? {
                 OR: [
-                  { username: { contains: search, mode: "insensitive" } },
-                  { fullname: { contains: search, mode: "insensitive" } },
+                  { username: { contains: search } },
+                  { fullname: { contains: search } },
                 ],
               }
             : {},
