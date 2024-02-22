@@ -6,8 +6,7 @@ async function main() {
   const usersData = Array.from({ length: 10 }).map(() => ({
     fullname: faker.person.fullName(),
     username: faker.internet.userName(),
-    password: bcrypt.hashSync("123456", 10),
-    avatar: faker.image.avatar(),
+    password: bcrypt.hashSync("123456", 10)
   }));
 
   for (const userData of usersData) {
